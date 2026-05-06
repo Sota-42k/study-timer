@@ -8,27 +8,41 @@ struct TimerView: View {
     @AppStorage(UserDefaultsKeys.focusDuration)      private var focusDuration: Double = 1500
     @AppStorage(UserDefaultsKeys.shortBreakDuration) private var shortBreak: Double    = 300
     @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreak: Double     = 900
-    @AppStorage(UserDefaultsKeys.soundVolume)        private var soundVolume: Double   = 1.0
+    @AppStorage(UserDefaultsKeys.sessionsBeforeLong) private var cycleLength: Int      = 4
 
     var body: some View {
         GeometryReader { geo in
-            let ringSize = min(geo.size.width, geo.size.height) * 0.55
-            let vSpacing = geo.size.height * 0.04
+            // Settings panel is compact (~120pt), ring gets the remaining space.
+            // Clamp to ≥80 so SF Symbol font size is never 0 on the first layout pass.
+            let ringSize = max(min(geo.size.width * 0.52, geo.size.height * 0.46), 80)
+            let gap      = geo.size.height * 0.025
 
-            ScrollView {
-                VStack(spacing: vSpacing) {
-                    sessionTypeLabel
-                    ringWithTime(size: ringSize)
-                    controls(ringSize: ringSize)
-                    if case .idle = vm.timerState {
-                        idleSettingsPanel
-                    }
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+
+                sessionTypeLabel
+                    .padding(.bottom, gap)
+
+                ringWithTime(size: ringSize)
+
+                controls(ringSize: ringSize)
+                    .padding(.top, gap)
+
+                Spacer(minLength: 0)
+
+                if case .idle = vm.timerState {
+                    idleSettingsPanel
+                        .padding(.bottom, 16)
                 }
-                .frame(minWidth: geo.size.width)
-                .padding(.vertical, vSpacing)
             }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
-        .background(Color.appBackground)
+        .background(
+            // Clicking any blank area resigns the active text field.
+            Color.appBackground.onTapGesture {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
+        )
         .onAppear { vm.setContext(modelContext) }
     }
 
@@ -49,8 +63,14 @@ struct TimerView: View {
             .frame(width: size, height: size)
 
             VStack(spacing: 4) {
-                Text(vm.timeString)
-                    .font(.system(size: size * 0.22, weight: .thin, design: .monospaced))
+                // Show the current focus duration when idle so changes reflect immediately
+                let displayTime: String = {
+                    if case .idle = vm.timerState { return formatSeconds(focusDuration) }
+                    return vm.timeString
+                }()
+
+                Text(displayTime)
+                    .font(.system(size: size * 0.27, weight: .thin, design: .monospaced))
                     .foregroundStyle(Color.textPrimary)
 
                 if case .idle = vm.timerState {
@@ -79,7 +99,7 @@ struct TimerView: View {
             primaryButton(size: primary)
 
             circleButton(
-                icon: "forward.end.fill",
+                icon: "forward.fill",
                 size: secondary,
                 fgColor: Color.textSecondary,
                 bgColor: Color.appSurface,
@@ -94,13 +114,13 @@ struct TimerView: View {
     private func primaryButton(size: CGFloat) -> some View {
         switch vm.timerState {
         case .idle:
-            circleButton(icon: "play.fill",    size: size, fgColor: .white, bgColor: .focusRing, action: { vm.start() })
+            circleButton(icon: "play.fill",   size: size, fgColor: .white, bgColor: .focusRing,         action: { vm.start() })
         case .running:
-            circleButton(icon: "pause.fill",   size: size, fgColor: .white, bgColor: Color.textPrimary, action: { vm.pause() })
+            circleButton(icon: "pause.fill",  size: size, fgColor: .white, bgColor: Color.textPrimary,  action: { vm.pause() })
         case .paused:
-            circleButton(icon: "play.fill",    size: size, fgColor: .white, bgColor: .focusRing, action: { vm.resume() })
+            circleButton(icon: "play.fill",   size: size, fgColor: .white, bgColor: .focusRing,         action: { vm.resume() })
         case .completed:
-            circleButton(icon: "arrow.right",  size: size, fgColor: .white, bgColor: .breakRing, action: { vm.next() })
+            circleButton(icon: "arrow.right", size: size, fgColor: .white, bgColor: .breakRing,         action: { vm.next() })
         }
     }
 
@@ -127,78 +147,73 @@ struct TimerView: View {
             Divider().opacity(0.4).padding(.leading, 16)
             DurationRow(label: "Long Break",  seconds: $longBreak,     range: 60...7200)
             Divider().opacity(0.4).padding(.leading, 16)
-            volumeRow
+            CountRow(label: "Laps per cycle", value: $cycleLength, range: 1...8)
+            Divider().opacity(0.4).padding(.leading, 16)
+            VolumeRow()
         }
         .background(Color.appSurface)
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
+        .frame(maxWidth: 360)
         .padding(.horizontal)
-    }
-
-    private var volumeRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: soundVolume < 0.01 ? "speaker.slash" : "speaker.wave.2")
-                .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
-                .frame(width: 20)
-            Slider(value: $soundVolume, in: 0...1)
-                .tint(Color.focusRing)
-            Text("\(Int(soundVolume * 100))%")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(Color.textSecondary)
-                .frame(width: 36, alignment: .trailing)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 }
 
 // MARK: -
 
-private struct DurationRow: View {
+struct DurationRow: View {
     let label: String
     @Binding var seconds: Double
     let range: ClosedRange<Double>
 
     @State private var text: String = ""
-    @FocusState private var isFocused: Bool
+    @State private var isEditing = false
 
     var body: some View {
         HStack {
             Text(label)
-                .font(.subheadline)
+                .font(.caption)
                 .foregroundStyle(Color.textPrimary)
             Spacer()
 
             Button {
-                seconds = max(seconds - 60, range.lowerBound)
+                let v = max(seconds - 60, range.lowerBound)
+                seconds = v
+                text = mins(v)
             } label: {
                 Image(systemName: "minus")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
-                    .frame(width: 26, height: 26)
+                    .frame(width: 22, height: 22)
                     .background(Color.appBackground)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
 
             HStack(spacing: 2) {
-                TextField("", text: $text)
-                    .textFieldStyle(.plain)
-                    .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(Color.textPrimary)
-                    .multilineTextAlignment(.trailing)
-                    .frame(width: 30)
-                    .focused($isFocused)
-                    .onChange(of: text) { _, new in
-                        // Strip any non-digit characters immediately
-                        let digits = new.filter(\.isNumber)
-                        if digits != new { text = digits }
-                    }
-                    .onSubmit { commit() }
-                    .onChange(of: isFocused) { _, focused in
-                        if !focused { commit() }
-                    }
+                // onEditingChanged maps directly to NSTextField's begin/end editing
+                // delegate callbacks — far more reliable than @FocusState on macOS.
+                TextField("", text: $text, onEditingChanged: { editing in
+                    isEditing = editing
+                    if !editing { commit() }
+                })
+                .textFieldStyle(.plain)
+                .font(.subheadline.monospacedDigit())
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 30)
+                .onChange(of: text) { _, new in
+                    let digits = new.filter(\.isNumber)
+                    if digits != new { text = digits }
+                }
+                .onSubmit {
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
+                .onExitCommand {
+                    text = mins(seconds)
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
+
                 Text("min")
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
@@ -207,42 +222,194 @@ private struct DurationRow: View {
             .padding(.vertical, 3)
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isFocused ? Color.appBackground : Color.clear)
+                    .fill(isEditing ? Color.appBackground : Color.clear)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(isFocused ? Color.focusRing.opacity(0.5) : Color.clear, lineWidth: 1)
+                            .strokeBorder(isEditing ? Color.focusRing.opacity(0.5) : Color.clear, lineWidth: 1)
                     )
             )
 
             Button {
-                seconds = min(seconds + 60, range.upperBound)
+                let v = min(seconds + 60, range.upperBound)
+                seconds = v
+                text = mins(v)
             } label: {
                 Image(systemName: "plus")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
-                    .frame(width: 26, height: 26)
+                    .frame(width: 22, height: 22)
                     .background(Color.appBackground)
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .onAppear { text = minuteString }
-        .onChange(of: seconds) { _, _ in
-            if !isFocused { text = minuteString }
+        .padding(.vertical, 7)
+        .onAppear { text = mins(seconds) }
+        .onChange(of: seconds) { _, v in
+            if !isEditing { text = mins(v) }
         }
     }
 
-    private var minuteString: String { String(Int(seconds) / 60) }
+    private func mins(_ s: Double) -> String { String(Int(s) / 60) }
 
     private func commit() {
-        guard let minutes = Int(text), minutes > 0 else {
-            text = minuteString   // revert if empty or zero
+        guard let m = Int(text), m > 0 else {
+            text = mins(seconds)
             return
         }
-        let clamped = min(max(Double(minutes * 60), range.lowerBound), range.upperBound)
+        let clamped = min(max(Double(m * 60), range.lowerBound), range.upperBound)
         seconds = clamped
-        text = String(Int(clamped) / 60)
+        text = mins(clamped)
+    }
+}
+
+// MARK: -
+
+struct CountRow: View {
+    let label: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+
+    @State private var text = ""
+    @State private var isEditing = false
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(Color.textPrimary)
+            Spacer()
+
+            Button {
+                let v = max(value - 1, range.lowerBound)
+                value = v; text = "\(v)"
+            } label: {
+                Image(systemName: "minus")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(width: 22, height: 22)
+                    .background(Color.appBackground)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 2) {
+                TextField("", text: $text, onEditingChanged: { editing in
+                    isEditing = editing
+                    if !editing { commit() }
+                })
+                .textFieldStyle(.plain)
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 22)
+                .onChange(of: text) { _, new in
+                    let d = new.filter(\.isNumber)
+                    if d != new { text = d }
+                }
+                .onSubmit { NSApp.keyWindow?.makeFirstResponder(nil) }
+                .onExitCommand { text = "\(value)"; NSApp.keyWindow?.makeFirstResponder(nil) }
+
+                Text("sessions")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(isEditing ? Color.appBackground : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(isEditing ? Color.focusRing.opacity(0.5) : Color.clear, lineWidth: 1))
+            )
+
+            Button {
+                let v = min(value + 1, range.upperBound)
+                value = v; text = "\(v)"
+            } label: {
+                Image(systemName: "plus")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(width: 22, height: 22)
+                    .background(Color.appBackground)
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 7)
+        .onAppear { text = "\(value)" }
+        .onChange(of: value) { _, v in if !isEditing { text = "\(v)" } }
+    }
+
+    private func commit() {
+        guard let v = Int(text), range.contains(v) else { text = "\(value)"; return }
+        value = v
+    }
+}
+
+// MARK: -
+
+struct VolumeRow: View {
+    @AppStorage(UserDefaultsKeys.soundVolume) private var volume: Double = 1.0
+    @State private var text = ""
+    @State private var isEditing = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: volume < 0.01 ? "speaker.slash" : "speaker.wave.2")
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+                .frame(width: 16)
+
+            Slider(value: $volume, in: 0...1)
+                .tint(Color.focusRing)
+                .onChange(of: volume) { _, v in
+                    if !isEditing { text = pct(v) }
+                }
+
+            HStack(spacing: 1) {
+                TextField("", text: $text, onEditingChanged: { editing in
+                    isEditing = editing
+                    if !editing { commit() }
+                })
+                .textFieldStyle(.plain)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(Color.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 24)
+                .onChange(of: text) { _, new in
+                    let d = new.filter(\.isNumber)
+                    if d != new { text = d }
+                }
+                .onSubmit { NSApp.keyWindow?.makeFirstResponder(nil) }
+                .onExitCommand { text = pct(volume); NSApp.keyWindow?.makeFirstResponder(nil) }
+
+                Text("%")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(isEditing ? Color.appBackground : Color.clear)
+                    .overlay(RoundedRectangle(cornerRadius: 5)
+                        .strokeBorder(isEditing ? Color.focusRing.opacity(0.5) : Color.clear, lineWidth: 1))
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 7)
+        .onAppear { text = pct(volume) }
+    }
+
+    private func pct(_ v: Double) -> String { "\(Int((v * 100).rounded()))" }
+
+    private func commit() {
+        guard let p = Int(text) else { text = pct(volume); return }
+        let clamped = min(max(Double(p) / 100.0, 0.0), 1.0)
+        volume = clamped
+        text = pct(clamped)
     }
 }

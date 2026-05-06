@@ -1,44 +1,74 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @AppStorage(UserDefaultsKeys.focusDuration)      private var focusDuration: Double = 1500
-    @AppStorage(UserDefaultsKeys.shortBreakDuration) private var shortBreak: Double    = 300
-    @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreak: Double     = 900
-    @AppStorage(UserDefaultsKeys.sessionsBeforeLong) private var cycleLength: Int      = 4
-    @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notifications: Bool = true
+    @AppStorage(UserDefaultsKeys.focusDuration)        private var focusDuration: Double = 1500
+    @AppStorage(UserDefaultsKeys.shortBreakDuration)   private var shortBreak: Double    = 300
+    @AppStorage(UserDefaultsKeys.longBreakDuration)    private var longBreak: Double     = 900
+    @AppStorage(UserDefaultsKeys.sessionsBeforeLong)   private var cycleLength: Int      = 4
+    @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notifications: Bool   = true
 
     var body: some View {
-        Form {
-            Section("Timer Durations") {
-                DurationStepper(label: "Focus", seconds: $focusDuration, range: 60...7200, step: 60)
-                DurationStepper(label: "Short Break", seconds: $shortBreak, range: 60...3600, step: 60)
-                DurationStepper(label: "Long Break", seconds: $longBreak, range: 60...7200, step: 60)
+        ScrollView {
+            VStack(spacing: 20) {
+                card {
+                    sectionLabel("Timer Durations")
+                    DurationRow(label: "Focus",       seconds: $focusDuration, range: 60...7200)
+                    Divider().opacity(0.4).padding(.leading, 16)
+                    DurationRow(label: "Short Break", seconds: $shortBreak,    range: 60...3600)
+                    Divider().opacity(0.4).padding(.leading, 16)
+                    DurationRow(label: "Long Break",  seconds: $longBreak,     range: 60...7200)
+                }
+
+                card {
+                    sectionLabel("Cycle")
+                    CountRow(label: "Sessions before long break", value: $cycleLength, range: 1...8)
+                }
+
+                card {
+                    sectionLabel("Sound")
+                    VolumeRow()
+                }
+
+                card {
+                    sectionLabel("Notifications")
+                    HStack {
+                        Text("Enable notifications")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.textPrimary)
+                        Spacer()
+                        Toggle("", isOn: $notifications)
+                            .labelsHidden()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
             }
-            Section("Cycle") {
-                Stepper("Sessions before long break: \(cycleLength)",
-                        value: $cycleLength, in: 1...8)
-            }
-            Section("Notifications") {
-                Toggle("Enable notifications", isOn: $notifications)
-            }
+            .padding(20)
         }
-        .formStyle(.grouped)
-        .background(Color.appBackground)
-        .scrollContentBackground(.hidden)
-    }
-}
-
-private struct DurationStepper: View {
-    let label: String
-    @Binding var seconds: Double
-    let range: ClosedRange<Double>
-    let step: Double
-
-    var body: some View {
-        Stepper(
-            "\(label): \(formatDuration(seconds))",
-            onIncrement: { seconds = min(seconds + step, range.upperBound) },
-            onDecrement: { seconds = max(seconds - step, range.lowerBound) }
+        .background(
+            Color.appBackground.onTapGesture {
+                NSApp.keyWindow?.makeFirstResponder(nil)
+            }
         )
+    }
+
+    private func sectionLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 2)
+    }
+
+    @ViewBuilder
+    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0) {
+            content()
+        }
+        .background(Color.appSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.05), radius: 6, y: 2)
     }
 }
