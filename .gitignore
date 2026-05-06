@@ -1,0 +1,31 @@
+# Xcode derived data and build artifacts
+DerivedData/
+build/
+*.xcarchive
+
+# Xcode user-specific settings (not shared between developers)
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Xcode SwiftPM state
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Instruments
+*.trace
+
+# Crashlytics
+Crashlytics/
+crashlytics-build.properties
+
+# CocoaPods (not used, but just in case)
+Pods/
+Podfile.lock
