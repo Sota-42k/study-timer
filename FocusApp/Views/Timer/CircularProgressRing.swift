@@ -15,7 +15,6 @@ struct CircularProgressRing: View {
                 .trim(from: 0, to: max(0, min(1, progress)))
                 .stroke(ringColor, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1), value: progress)
         }
     }
 }

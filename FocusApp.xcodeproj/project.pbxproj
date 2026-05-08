@@ -27,6 +27,7 @@
 		FA2001000000000000000017 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1001000000000000000017 /* Formatters.swift */; };
 		FA2001000000000000000018 /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1001000000000000000018 /* ColorTheme.swift */; };
 		FA2001000000000000000019 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA1001000000000000000019 /* Assets.xcassets */; };
+		FA2001000000000000000020 /* CycleProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1001000000000000000021 /* CycleProgressBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		FA1001000000000000000018 /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
 		FA1001000000000000000019 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FA1001000000000000000020 /* FocusApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FocusApp.entitlements; sourceTree = "<group>"; };
+		FA1001000000000000000021 /* CycleProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CycleProgressBar.swift; sourceTree = "<group>"; };
 		FA1001000000000000000099 /* FocusApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FocusApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -132,6 +134,7 @@
 				FA1001000000000000000007 /* TimerView.swift */,
 				FA1001000000000000000008 /* CircularProgressRing.swift */,
 				FA1001000000000000000009 /* LapListView.swift */,
+				FA1001000000000000000021 /* CycleProgressBar.swift */,
 			);
 			path = Timer;
 			sourceTree = "<group>";
@@ -260,6 +263,7 @@
 				FA2001000000000000000007 /* TimerView.swift in Sources */,
 				FA2001000000000000000008 /* CircularProgressRing.swift in Sources */,
 				FA2001000000000000000009 /* LapListView.swift in Sources */,
+				FA2001000000000000000020 /* CycleProgressBar.swift in Sources */,
 				FA2001000000000000000010 /* StatsView.swift in Sources */,
 				FA2001000000000000000011 /* DailyBarChart.swift in Sources */,
 				FA2001000000000000000012 /* StatSummaryRow.swift in Sources */,

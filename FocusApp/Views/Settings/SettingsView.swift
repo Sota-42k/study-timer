@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage(UserDefaultsKeys.shortBreakDuration)   private var shortBreak: Double    = 300
     @AppStorage(UserDefaultsKeys.longBreakDuration)    private var longBreak: Double     = 900
     @AppStorage(UserDefaultsKeys.sessionsBeforeLong)   private var cycleLength: Int      = 4
+    @AppStorage(UserDefaultsKeys.cycleCount)            private var cycleCount: Int       = 1
     @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notifications: Bool   = true
 
     var body: some View {
@@ -21,7 +22,9 @@ struct SettingsView: View {
 
                 card {
                     sectionLabel("Cycle")
-                    CountRow(label: "Sessions before long break", value: $cycleLength, range: 1...8)
+                    CountRow(label: "Laps per cycle", value: $cycleLength, range: 1...8)
+                    Divider().opacity(0.4).padding(.leading, 16)
+                    CountRow(label: "Cycles", value: $cycleCount, range: 1...8)
                 }
 
                 card {

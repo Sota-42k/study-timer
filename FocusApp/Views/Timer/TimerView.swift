@@ -9,6 +9,7 @@ struct TimerView: View {
     @AppStorage(UserDefaultsKeys.shortBreakDuration) private var shortBreak: Double    = 300
     @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreak: Double     = 900
     @AppStorage(UserDefaultsKeys.sessionsBeforeLong) private var cycleLength: Int      = 4
+    @AppStorage(UserDefaultsKeys.cycleCount)          private var cycleCount: Int       = 1
 
     var body: some View {
         GeometryReader { geo in
@@ -18,6 +19,10 @@ struct TimerView: View {
             let gap      = geo.size.height * 0.025
 
             VStack(spacing: 0) {
+                CycleProgressBar(vm: vm)
+                    .padding(.top, 14)
+                    .padding(.horizontal, 20)
+
                 Spacer(minLength: 0)
 
                 sessionTypeLabel
@@ -49,9 +54,16 @@ struct TimerView: View {
     // MARK: — Subviews
 
     private var sessionTypeLabel: some View {
-        Text(vm.timerState.sessionType?.label ?? "Ready")
-            .font(.headline)
-            .foregroundStyle(Color.textSecondary)
+        VStack(spacing: 2) {
+            Text(vm.timerState.sessionType?.label ?? "Ready")
+                .font(.headline)
+                .foregroundStyle(Color.textSecondary)
+            if !vm.progressLabel.isEmpty {
+                Text(vm.progressLabel)
+                    .font(.caption2)
+                    .foregroundStyle(Color.textSecondary.opacity(0.65))
+            }
+        }
     }
 
     private func ringWithTime(size: CGFloat) -> some View {
@@ -59,6 +71,10 @@ struct TimerView: View {
             CircularProgressRing(
                 progress: vm.progress,
                 ringColor: .ringColor(for: vm.timerState.sessionType ?? .focus)
+            )
+            .animation(
+                { if case .running = vm.timerState { return .linear(duration: 1) }; return nil }(),
+                value: vm.progress
             )
             .frame(width: size, height: size)
 
@@ -119,8 +135,8 @@ struct TimerView: View {
             circleButton(icon: "pause.fill",  size: size, fgColor: .white, bgColor: Color.textPrimary,  action: { vm.pause() })
         case .paused:
             circleButton(icon: "play.fill",   size: size, fgColor: .white, bgColor: .focusRing,         action: { vm.resume() })
-        case .completed:
-            circleButton(icon: "arrow.right", size: size, fgColor: .white, bgColor: .breakRing,         action: { vm.next() })
+        case .completed(let type):
+            circleButton(icon: "arrow.right", size: size, fgColor: .white, bgColor: .ringColor(for: type), action: { vm.next() })
         }
     }
 
@@ -148,6 +164,8 @@ struct TimerView: View {
             DurationRow(label: "Long Break",  seconds: $longBreak,     range: 60...7200)
             Divider().opacity(0.4).padding(.leading, 16)
             CountRow(label: "Laps per cycle", value: $cycleLength, range: 1...8)
+            Divider().opacity(0.4).padding(.leading, 16)
+            CountRow(label: "Cycles", value: $cycleCount, range: 1...8)
             Divider().opacity(0.4).padding(.leading, 16)
             VolumeRow()
         }
