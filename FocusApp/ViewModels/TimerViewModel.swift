@@ -224,12 +224,9 @@ final class TimerViewModel {
         timerState = .completed(type)
         NotificationService.shared.fireCompletionNotification(for: type)
 
-        // Auto-advance to the next session after a brief pause.
-        // Stop after the long break — that marks the end of one full cycle.
-        if type != .longBreak {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                self?.next()
-            }
+        // Auto-advance after every session; next() handles cycle-count exhaustion.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            self?.next()
         }
     }
 
