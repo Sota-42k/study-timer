@@ -151,6 +151,7 @@ struct TimerView: View {
                 .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
         }
         .buttonStyle(.plain)
+        .focusEffectDisabled()
     }
 
     // MARK: — Idle settings panel
