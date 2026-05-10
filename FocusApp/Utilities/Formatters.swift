@@ -21,3 +21,16 @@ extension DateFormatter {
         return f
     }()
 }
+
+extension Date {
+    static var currentMonthName: String {
+        DateFormatter().apply { $0.dateFormat = "MMMM" }.string(from: Date())
+    }
+}
+
+extension DateFormatter {
+    func apply(_ configure: (DateFormatter) -> Void) -> DateFormatter {
+        configure(self)
+        return self
+    }
+}
