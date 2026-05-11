@@ -173,8 +173,25 @@ final class TimerViewModel {
             }
         }
 
-        let nextType = determineNextType(after: type)
-        let duration = durationForType(nextType)
+        var nextType = determineNextType(after: type)
+        var duration = durationForType(nextType)
+
+        // Skip 0-duration breaks: apply their side effects and jump straight to focus.
+        if duration == 0 && nextType != .focus {
+            if nextType == .longBreak {
+                completedCycles += 1
+                completedFocusInCycle = 0
+                let target = UserDefaults.standard.integer(forKey: UserDefaultsKeys.cycleCount)
+                let effective = target > 0 ? target : 1
+                if completedCycles >= effective {
+                    reset()
+                    return
+                }
+            }
+            nextType = .focus
+            duration = durationForType(.focus)
+        }
+
         totalSeconds = duration
         secondsRemaining = duration
         sessionStartDate = Date()
@@ -245,14 +262,16 @@ final class TimerViewModel {
         let ud = UserDefaults.standard
         switch type {
         case .focus:
-            let v = ud.double(forKey: UserDefaultsKeys.focusDuration)
-            return v > 0 ? v : 1500
+            guard ud.object(forKey: UserDefaultsKeys.focusDuration) != nil else { return 1500 }
+            return max(ud.double(forKey: UserDefaultsKeys.focusDuration), 60)
         case .shortBreak:
-            let v = ud.double(forKey: UserDefaultsKeys.shortBreakDuration)
-            return v > 0 ? v : 300
+            return ud.object(forKey: UserDefaultsKeys.shortBreakDuration) != nil
+                ? ud.double(forKey: UserDefaultsKeys.shortBreakDuration)
+                : 300
         case .longBreak:
-            let v = ud.double(forKey: UserDefaultsKeys.longBreakDuration)
-            return v > 0 ? v : 900
+            return ud.object(forKey: UserDefaultsKeys.longBreakDuration) != nil
+                ? ud.double(forKey: UserDefaultsKeys.longBreakDuration)
+                : 1800
         }
     }
 

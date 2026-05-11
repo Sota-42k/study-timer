@@ -5,7 +5,7 @@ struct CycleProgressBar: View {
 
     @AppStorage(UserDefaultsKeys.focusDuration)      private var focusDuration: Double = 1500
     @AppStorage(UserDefaultsKeys.shortBreakDuration) private var shortBreakDuration: Double = 300
-    @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreakDuration: Double = 900
+    @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreakDuration: Double = 1800
     @AppStorage(UserDefaultsKeys.sessionsBeforeLong) private var lapsPerCycle: Int = 4
     @AppStorage(UserDefaultsKeys.cycleCount)          private var cycleCount: Int = 1
 

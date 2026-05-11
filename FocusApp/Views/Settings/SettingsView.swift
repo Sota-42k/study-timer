@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage(UserDefaultsKeys.focusDuration)        private var focusDuration: Double = 1500
     @AppStorage(UserDefaultsKeys.shortBreakDuration)   private var shortBreak: Double    = 300
-    @AppStorage(UserDefaultsKeys.longBreakDuration)    private var longBreak: Double     = 900
+    @AppStorage(UserDefaultsKeys.longBreakDuration)    private var longBreak: Double     = 1800
     @AppStorage(UserDefaultsKeys.sessionsBeforeLong)   private var cycleLength: Int      = 4
     @AppStorage(UserDefaultsKeys.cycleCount)            private var cycleCount: Int       = 1
     @AppStorage(UserDefaultsKeys.notificationsEnabled) private var notifications: Bool   = true
@@ -13,11 +13,11 @@ struct SettingsView: View {
             VStack(spacing: 20) {
                 card {
                     sectionLabel("Timer Durations")
-                    DurationRow(label: "Focus",       seconds: $focusDuration, range: 60...7200)
+                    DurationRow(label: "Focus",       seconds: $focusDuration, range: 60...10800)
                     Divider().opacity(0.4).padding(.leading, 16)
-                    DurationRow(label: "Short Break", seconds: $shortBreak,    range: 60...3600)
+                    DurationRow(label: "Short Break", seconds: $shortBreak,    range: 0...3600)
                     Divider().opacity(0.4).padding(.leading, 16)
-                    DurationRow(label: "Long Break",  seconds: $longBreak,     range: 60...7200)
+                    DurationRow(label: "Long Break",  seconds: $longBreak,     range: 0...10800)
                 }
 
                 card {

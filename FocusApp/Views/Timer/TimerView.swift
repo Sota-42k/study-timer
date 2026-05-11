@@ -7,7 +7,7 @@ struct TimerView: View {
 
     @AppStorage(UserDefaultsKeys.focusDuration)      private var focusDuration: Double = 1500
     @AppStorage(UserDefaultsKeys.shortBreakDuration) private var shortBreak: Double    = 300
-    @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreak: Double     = 900
+    @AppStorage(UserDefaultsKeys.longBreakDuration)  private var longBreak: Double     = 1800
     @AppStorage(UserDefaultsKeys.sessionsBeforeLong) private var cycleLength: Int      = 4
     @AppStorage(UserDefaultsKeys.cycleCount)          private var cycleCount: Int       = 1
 
@@ -158,11 +158,11 @@ struct TimerView: View {
 
     private var idleSettingsPanel: some View {
         VStack(spacing: 0) {
-            DurationRow(label: "Focus",       seconds: $focusDuration, range: 60...7200)
+            DurationRow(label: "Focus",       seconds: $focusDuration, range: 60...10800)
             Divider().opacity(0.4).padding(.leading, 16)
-            DurationRow(label: "Short Break", seconds: $shortBreak,    range: 60...3600)
+            DurationRow(label: "Short Break", seconds: $shortBreak,    range: 0...3600)
             Divider().opacity(0.4).padding(.leading, 16)
-            DurationRow(label: "Long Break",  seconds: $longBreak,     range: 60...7200)
+            DurationRow(label: "Long Break",  seconds: $longBreak,     range: 0...10800)
             Divider().opacity(0.4).padding(.leading, 16)
             CountRow(label: "Laps per cycle", value: $cycleLength, range: 1...8)
             Divider().opacity(0.4).padding(.leading, 16)
@@ -264,7 +264,11 @@ struct DurationRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 7)
-        .onAppear { text = mins(seconds) }
+        .onAppear {
+            let clamped = min(max(seconds, range.lowerBound), range.upperBound)
+            if clamped != seconds { seconds = clamped }
+            text = mins(clamped)
+        }
         .onChange(of: seconds) { _, v in
             if !isEditing { text = mins(v) }
         }
@@ -273,7 +277,7 @@ struct DurationRow: View {
     private func mins(_ s: Double) -> String { String(Int(s) / 60) }
 
     private func commit() {
-        guard let m = Int(text), m > 0 else {
+        guard let m = Int(text), m >= 0 else {
             text = mins(seconds)
             return
         }
