@@ -145,7 +145,8 @@ struct StatsView: View {
             DailyBarChart(
                 data: currentChartData,
                 average: currentChartAverage,
-                isMonthly: chartRange == .month
+                isMonthly: chartRange == .month,
+                isCurrentPeriod: isAtCurrentPeriod
             )
         }
         .padding(16)
